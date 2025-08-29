@@ -28,8 +28,8 @@
         .form-group { margin-bottom: 1.5rem; }
         label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--label-color); }
         .input-with-button { display: flex; gap: 0.5rem; }
-        input[type="text"], textarea { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--input-bg); font-size: 1rem; color: var(--text-color); transition: border-color 0.2s, box-shadow 0.2s; }
-        input[type="text"]:focus, textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
+        input[type="text"], input[type="number"], textarea { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--input-bg); font-size: 1rem; color: var(--text-color); transition: border-color 0.2s, box-shadow 0.2s; }
+        input[type="text"]:focus, input[type="number"]:focus, textarea:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2); }
         textarea { min-height: 150px; resize: vertical; font-family: monospace; }
         .btn { padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 500; cursor: pointer; border: none; border-radius: 8px; color: white; transition: background-color 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
         .btn-primary { background-color: var(--primary-color); } .btn-primary:hover { background-color: var(--primary-hover); }
@@ -75,16 +75,27 @@
             </section>
             <section id="chapterGenerator" class="generator-section">
                 <h2>Generate Chapter Post</h2>
-                <div class="form-group"><label for="mangaTitleForChapter">Main Manga Title (for label)</label><input type="text" id="mangaTitleForChapter" placeholder="Enter the exact title used in the main post"></div>
+                <div class="form-group"><label for="mangaTitleForChapter">Main Manga Title</label><input type="text" id="mangaTitleForChapter" placeholder="Enter the exact title used in the main post"></div>
+                
+                <!-- NEW FIELD FOR CHAPTER NUMBER -->
+                <div class="form-group"><label for="chapterNumberInput">Chapter Number</label><input type="number" id="chapterNumberInput" placeholder="e.g., 1 or 12.5"></div>
+
                 <div class="form-group"><label>Upload Chapter Images</label><div id="imageUploaderArea"><i class="fa-solid fa-cloud-arrow-up"></i><p>Click to browse or drag & drop files</p><span>PNG, JPG, GIF up to 10MB</span></div><input type="file" id="fileInput" multiple accept="image/*" style="display: none;"><div id="imagePreviewGrid"></div></div>
                 <button id="generateChapterCode" class="btn btn-secondary"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Code</button>
-                <div id="chapterOutputs" style="display: none;"><div class="output-group"><h3>Generated Chapter Post HTML</h3><div class="output-container"><textarea id="chapterHtmlOutput" readonly></textarea><button class="copy-button" onclick="copyToClipboard('chapterHtmlOutput')"><i class="fa-solid fa-copy"></i></button></div></div><div class="output-group"><h3>Generated Chapter Label</h3><div class="output-container"><textarea id="chapterLabelOutput" readonly></textarea><button class="copy-button" onclick="copyToClipboard('chapterLabelOutput')"><i class="fa-solid fa-copy"></i></button></div></div></div>
+                <div id="chapterOutputs" style="display: none;">
+                    
+                    <!-- NEW OUTPUT FOR POST TITLE -->
+                    <div class="output-group"><h3>Generated Post Title</h3><div class="output-container"><textarea id="chapterTitleOutput" readonly></textarea><button class="copy-button" onclick="copyToClipboard('chapterTitleOutput')"><i class="fa-solid fa-copy"></i></button></div></div>
+
+                    <div class="output-group"><h3>Generated Post HTML</h3><div class="output-container"><textarea id="chapterHtmlOutput" readonly></textarea><button class="copy-button" onclick="copyToClipboard('chapterHtmlOutput')"><i class="fa-solid fa-copy"></i></button></div></div>
+                    <div class="output-group"><h3>Generated Label</h3><div class="output-container"><textarea id="chapterLabelOutput" readonly></textarea><button class="copy-button" onclick="copyToClipboard('chapterLabelOutput')"><i class="fa-solid fa-copy"></i></button></div></div>
+                </div>
             </section>
         </main>
     </div>
 <script>
-    // All DOM element variables are defined here
-    const showPostBtn=document.getElementById("showPostBtn"),showChapterBtn=document.getElementById("showChapterBtn"),postGenerator=document.getElementById("postGenerator"),chapterGenerator=document.getElementById("chapterGenerator"),searchButton=document.getElementById("searchButton"),searchInput=document.getElementById("mangaSearchInput"),searchResults=document.getElementById("searchResults"),postOutputs=document.getElementById("postOutputs"),postHtmlOutput=document.getElementById("postHtmlOutput"),postLabelsOutput=document.getElementById("postLabelsOutput"),mangaTitleForChapter=document.getElementById("mangaTitleForChapter"),imageUploaderArea=document.getElementById("imageUploaderArea"),fileInput=document.getElementById("fileInput"),imagePreviewGrid=document.getElementById("imagePreviewGrid"),generateChapterCodeBtn=document.getElementById("generateChapterCode"),chapterOutputs=document.getElementById("chapterOutputs"),chapterHtmlOutput=document.getElementById("chapterHtmlOutput"),chapterLabelOutput=document.getElementById("chapterLabelOutput");
+    // All DOM element variables
+    const showPostBtn=document.getElementById("showPostBtn"),showChapterBtn=document.getElementById("showChapterBtn"),postGenerator=document.getElementById("postGenerator"),chapterGenerator=document.getElementById("chapterGenerator"),searchButton=document.getElementById("searchButton"),searchInput=document.getElementById("mangaSearchInput"),searchResults=document.getElementById("searchResults"),postOutputs=document.getElementById("postOutputs"),postHtmlOutput=document.getElementById("postHtmlOutput"),postLabelsOutput=document.getElementById("postLabelsOutput"),mangaTitleForChapter=document.getElementById("mangaTitleForChapter"),chapterNumberInput=document.getElementById("chapterNumberInput"),imageUploaderArea=document.getElementById("imageUploaderArea"),fileInput=document.getElementById("fileInput"),imagePreviewGrid=document.getElementById("imagePreviewGrid"),generateChapterCodeBtn=document.getElementById("generateChapterCode"),chapterOutputs=document.getElementById("chapterOutputs"),chapterTitleOutput=document.getElementById("chapterTitleOutput"),chapterHtmlOutput=document.getElementById("chapterHtmlOutput"),chapterLabelOutput=document.getElementById("chapterLabelOutput");
     let uploadedImages={},uploadCounter=0;
 
     function switchView(e){"post"===e?(postGenerator.classList.add("active"),chapterGenerator.classList.remove("active"),showPostBtn.classList.add("active"),showChapterBtn.classList.remove("active")):(postGenerator.classList.remove("active"),chapterGenerator.classList.add("active"),showPostBtn.classList.remove("active"),showChapterBtn.classList.add("active"))}showPostBtn.addEventListener("click",()=>switchView("post")),showChapterBtn.addEventListener("click",()=>switchView("chapter"));
@@ -96,42 +107,21 @@
     imageUploaderArea.addEventListener("click",()=>fileInput.click()),fileInput.addEventListener("change",e=>handleFiles(e.target.files)),["dragenter","dragover","dragleave","drop"].forEach(e=>{imageUploaderArea.addEventListener(e,e=>{e.preventDefault(),e.stopPropagation()},!1)}),imageUploaderArea.addEventListener("drop",e=>handleFiles(e.dataTransfer.files));
     function handleFiles(e){[...e].sort((e,t)=>e.name.localeCompare(t.name,void 0,{numeric:!0})).forEach(e=>{if(uploadedImages[e.name])return;uploadCounter++;const t=document.createElement("div");t.className="preview-card",t.id=e.name;const a=document.createElement("div");a.className="preview-number",a.textContent=uploadCounter,t.innerHTML='<div class="preview-overlay"><div class="loader"></div></div>',t.appendChild(a),imagePreviewGrid.appendChild(t),handleFileUpload(e)})}
     
-    // --- FINAL, 100% WORKING UPLOAD FUNCTION (for Netlify) ---
     async function handleFileUpload(file) {
         const formData = new FormData();
-        formData.append('fileToUpload', file);
-        formData.append('reqtype', 'fileupload');
-        formData.append('userhash', '');
-
+        formData.append('fileToUpload', file); formData.append('reqtype', 'fileupload'); formData.append('userhash', '');
         try {
-            // This calls YOUR private proxy function on Netlify
-            const response = await fetch('/.netlify/functions/upload', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`Upload failed via proxy: ${errorText}`);
-            }
-            
+            const response = await fetch('/.netlify/functions/upload', { method: 'POST', body: formData });
+            if (!response.ok) { const errorText = await response.text(); throw new Error(`Upload failed via proxy: ${errorText}`); }
             const imageUrl = await response.text();
-            if (!imageUrl.startsWith('http')) {
-                throw new Error('Invalid response from proxy.');
-            }
-
+            if (!imageUrl.startsWith('http')) { throw new Error('Invalid response from proxy.'); }
             uploadedImages[file.name] = imageUrl;
-            
             const card = document.getElementById(file.name);
             card.innerHTML = `<img src="${imageUrl}" alt="Preview of ${file.name}">`;
-            
-            // Re-add the number after replacing the innerHTML
             const numberDiv = document.createElement("div");
             numberDiv.className = "preview-number";
-            // Find the correct number based on its position in the grid
             numberDiv.textContent = Array.from(imagePreviewGrid.children).indexOf(card) + 1;
             card.appendChild(numberDiv);
-
         } catch (error) {
             console.error('Upload Error:', error);
             const card = document.getElementById(file.name);
@@ -139,7 +129,30 @@
         }
     }
     
-    generateChapterCodeBtn.addEventListener("click",()=>{const e=Object.keys(uploadedImages).sort((e,t)=>e.localeCompare(t.name,void 0,{numeric:!0})).map(e=>uploadedImages[e]);if(0===e.length)return void alert("Please upload at least one image.");const t=mangaTitleForChapter.value.trim();if(!t)return void alert("Please provide the Main Manga Title for the label.");const a=e.map(e=>`"${e}"`).join(",\n");chapterHtmlOutput.value=`<a name='more'></a>\n<script>\nconst ts_reader = [\n${a}\n];\n<\/script>`,chapterLabelOutput.value=t,chapterOutputs.style.display="block"});
+    // --- UPDATED CODE GENERATION LOGIC ---
+    generateChapterCodeBtn.addEventListener("click", () => {
+        const sortedUrls = Object.keys(uploadedImages).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).map(fileName => uploadedImages[fileName]);
+        if (sortedUrls.length === 0) { alert('Please upload at least one image.'); return; }
+        
+        const mainTitle = mangaTitleForChapter.value.trim();
+        const chapterNum = chapterNumberInput.value.trim();
+
+        if (!mainTitle) { alert('Please provide the Main Manga Title.'); return; }
+        if (!chapterNum) { alert('Please provide the Chapter Number.'); return; }
+        
+        // Format chapter number to have at least two digits (e.g., 1 -> 01)
+        const paddedChapterNum = chapterNum.includes('.') ? chapterNum : chapterNum.padStart(2, '0');
+        const fullChapterTitle = `${mainTitle} Chapter ${paddedChapterNum}`;
+
+        const formattedUrls = sortedUrls.map(url => `"${url}"`).join(",\n");
+        
+        // Populate all three outputs
+        chapterTitleOutput.value = fullChapterTitle; // For the post title
+        chapterHtmlOutput.value = `<a name='more'></a>\n<script>\nconst ts_reader = [\n${formattedUrls}\n];\n<\/script>`; // For the post body
+        chapterLabelOutput.value = mainTitle; // For the post label
+
+        chapterOutputs.style.display = 'block';
+    });
     
     function copyToClipboard(e){navigator.clipboard.writeText(document.getElementById(e).value).then(()=>alert("Copied to clipboard!")).catch(e=>console.error("Failed to copy: ",e))}
 </script>
