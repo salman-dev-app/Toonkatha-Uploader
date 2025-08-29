@@ -6,29 +6,28 @@ exports.handler = async (event) => {
   }
 
   try {
-    // Pass the headers and body from the client directly to Catbox
+    // This acts as a simple pass-through proxy.
+    // It forwards the exact body and content-type header from the browser to Catbox.
     const response = await fetch('https://catbox.moe/user/api.php', {
       method: 'POST',
       headers: {
-        // Let node-fetch set the Content-Type header with the correct boundary
-        // 'Content-Type': event.headers['content-type'], 
+        'Content-Type': event.headers['content-type'],
       },
       body: event.body,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Catbox API Error: ${response.status} - ${errorText}`);
-    }
-
     const responseText = await response.text();
+
+    if (!response.ok) {
+      throw new Error(`Catbox API Error (${response.status}): ${responseText}`);
+    }
 
     return {
       statusCode: 200,
       body: responseText,
     };
   } catch (error) {
-    console.error('Proxy Error:', error);
+    console.error('Proxy Error:', error.message);
     return {
       statusCode: 500,
       body: JSON.stringify({ error: error.message }),
