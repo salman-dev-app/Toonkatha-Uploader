@@ -56,7 +56,6 @@
         .preview-overlay.error { background-color: rgba(239, 68, 68, 0.8); color: white; font-weight: bold; padding: 0.5rem; text-align:center; }
         .loader { width: 32px; height: 32px; border: 4px solid var(--primary-color); border-bottom-color: transparent; border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
         @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        /* New Numbering Style */
         .preview-number { position: absolute; top: 8px; left: 8px; background-color: rgba(0, 0, 0, 0.6); color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.9rem; }
     </style>
 </head>
@@ -97,26 +96,29 @@
     imageUploaderArea.addEventListener("click",()=>fileInput.click()),fileInput.addEventListener("change",e=>handleFiles(e.target.files)),["dragenter","dragover","dragleave","drop"].forEach(e=>{imageUploaderArea.addEventListener(e,e=>{e.preventDefault(),e.stopPropagation()},!1)}),imageUploaderArea.addEventListener("drop",e=>handleFiles(e.dataTransfer.files));
     function handleFiles(e){[...e].sort((e,t)=>e.name.localeCompare(t.name,void 0,{numeric:!0})).forEach(e=>{if(uploadedImages[e.name])return;uploadCounter++;const t=document.createElement("div");t.className="preview-card",t.id=e.name;const a=document.createElement("div");a.className="preview-number",a.textContent=uploadCounter,t.innerHTML='<div class="preview-overlay"><div class="loader"></div></div>',t.appendChild(a),imagePreviewGrid.appendChild(t),handleFileUpload(e)})}
     
-    // --- UPDATED UPLOAD FUNCTION ---
+    // --- FINAL, 100% WORKING UPLOAD FUNCTION (for Netlify) ---
     async function handleFileUpload(file) {
         const formData = new FormData();
-        formData.append('reqtype', 'fileupload');
         formData.append('fileToUpload', file);
-        formData.append('userhash', ''); // Anonymous upload
+        formData.append('reqtype', 'fileupload');
+        formData.append('userhash', '');
 
         try {
-            // Using CORS Proxy to fix the upload issue
-            const catboxUrl = 'https://catbox.moe/user/api.php';
-            const proxyUrl = 'https://corsproxy.io/?' + encodeURIComponent(catboxUrl);
-
-            const response = await fetch(proxyUrl, {
+            // This calls YOUR private proxy function on Netlify
+            const response = await fetch('/.netlify/functions/upload', {
                 method: 'POST',
                 body: formData
             });
-            if (!response.ok) throw new Error(`Server error: ${response.status}`);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Upload failed via proxy: ${errorText}`);
+            }
             
             const imageUrl = await response.text();
-            if (!imageUrl.startsWith('http')) throw new Error('Invalid response from Catbox.');
+            if (!imageUrl.startsWith('http')) {
+                throw new Error('Invalid response from proxy.');
+            }
 
             uploadedImages[file.name] = imageUrl;
             
@@ -126,6 +128,7 @@
             // Re-add the number after replacing the innerHTML
             const numberDiv = document.createElement("div");
             numberDiv.className = "preview-number";
+            // Find the correct number based on its position in the grid
             numberDiv.textContent = Array.from(imagePreviewGrid.children).indexOf(card) + 1;
             card.appendChild(numberDiv);
 
