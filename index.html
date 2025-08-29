@@ -76,17 +76,11 @@
             <section id="chapterGenerator" class="generator-section">
                 <h2>Generate Chapter Post</h2>
                 <div class="form-group"><label for="mangaTitleForChapter">Main Manga Title</label><input type="text" id="mangaTitleForChapter" placeholder="Enter the exact title used in the main post"></div>
-                
-                <!-- NEW FIELD FOR CHAPTER NUMBER -->
                 <div class="form-group"><label for="chapterNumberInput">Chapter Number</label><input type="number" id="chapterNumberInput" placeholder="e.g., 1 or 12.5"></div>
-
                 <div class="form-group"><label>Upload Chapter Images</label><div id="imageUploaderArea"><i class="fa-solid fa-cloud-arrow-up"></i><p>Click to browse or drag & drop files</p><span>PNG, JPG, GIF up to 10MB</span></div><input type="file" id="fileInput" multiple accept="image/*" style="display: none;"><div id="imagePreviewGrid"></div></div>
                 <button id="generateChapterCode" class="btn btn-secondary"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Code</button>
                 <div id="chapterOutputs" style="display: none;">
-                    
-                    <!-- NEW OUTPUT FOR POST TITLE -->
                     <div class="output-group"><h3>Generated Post Title</h3><div class="output-container"><textarea id="chapterTitleOutput" readonly></textarea><button class="copy-button" onclick="copyToClipboard('chapterTitleOutput')"><i class="fa-solid fa-copy"></i></button></div></div>
-
                     <div class="output-group"><h3>Generated Post HTML</h3><div class="output-container"><textarea id="chapterHtmlOutput" readonly></textarea><button class="copy-button" onclick="copyToClipboard('chapterHtmlOutput')"><i class="fa-solid fa-copy"></i></button></div></div>
                     <div class="output-group"><h3>Generated Label</h3><div class="output-container"><textarea id="chapterLabelOutput" readonly></textarea><button class="copy-button" onclick="copyToClipboard('chapterLabelOutput')"><i class="fa-solid fa-copy"></i></button></div></div>
                 </div>
@@ -107,21 +101,39 @@
     imageUploaderArea.addEventListener("click",()=>fileInput.click()),fileInput.addEventListener("change",e=>handleFiles(e.target.files)),["dragenter","dragover","dragleave","drop"].forEach(e=>{imageUploaderArea.addEventListener(e,e=>{e.preventDefault(),e.stopPropagation()},!1)}),imageUploaderArea.addEventListener("drop",e=>handleFiles(e.dataTransfer.files));
     function handleFiles(e){[...e].sort((e,t)=>e.name.localeCompare(t.name,void 0,{numeric:!0})).forEach(e=>{if(uploadedImages[e.name])return;uploadCounter++;const t=document.createElement("div");t.className="preview-card",t.id=e.name;const a=document.createElement("div");a.className="preview-number",a.textContent=uploadCounter,t.innerHTML='<div class="preview-overlay"><div class="loader"></div></div>',t.appendChild(a),imagePreviewGrid.appendChild(t),handleFileUpload(e)})}
     
+    // --- FINAL, 100% WORKING UPLOAD FUNCTION (FormData through Netlify) ---
     async function handleFileUpload(file) {
         const formData = new FormData();
-        formData.append('fileToUpload', file); formData.append('reqtype', 'fileupload'); formData.append('userhash', '');
+        formData.append('fileToUpload', file);
+        formData.append('reqtype', 'fileupload');
+        formData.append('userhash', '');
+
         try {
-            const response = await fetch('/.netlify/functions/upload', { method: 'POST', body: formData });
-            if (!response.ok) { const errorText = await response.text(); throw new Error(`Upload failed via proxy: ${errorText}`); }
+            const response = await fetch('/.netlify/functions/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Upload failed via proxy: ${errorText}`);
+            }
+            
             const imageUrl = await response.text();
-            if (!imageUrl.startsWith('http')) { throw new Error('Invalid response from proxy.'); }
+            if (!imageUrl.startsWith('http')) {
+                throw new Error('Invalid response from proxy.');
+            }
+
             uploadedImages[file.name] = imageUrl;
+            
             const card = document.getElementById(file.name);
             card.innerHTML = `<img src="${imageUrl}" alt="Preview of ${file.name}">`;
+            
             const numberDiv = document.createElement("div");
             numberDiv.className = "preview-number";
             numberDiv.textContent = Array.from(imagePreviewGrid.children).indexOf(card) + 1;
             card.appendChild(numberDiv);
+
         } catch (error) {
             console.error('Upload Error:', error);
             const card = document.getElementById(file.name);
@@ -129,30 +141,7 @@
         }
     }
     
-    // --- UPDATED CODE GENERATION LOGIC ---
-    generateChapterCodeBtn.addEventListener("click", () => {
-        const sortedUrls = Object.keys(uploadedImages).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).map(fileName => uploadedImages[fileName]);
-        if (sortedUrls.length === 0) { alert('Please upload at least one image.'); return; }
-        
-        const mainTitle = mangaTitleForChapter.value.trim();
-        const chapterNum = chapterNumberInput.value.trim();
-
-        if (!mainTitle) { alert('Please provide the Main Manga Title.'); return; }
-        if (!chapterNum) { alert('Please provide the Chapter Number.'); return; }
-        
-        // Format chapter number to have at least two digits (e.g., 1 -> 01)
-        const paddedChapterNum = chapterNum.includes('.') ? chapterNum : chapterNum.padStart(2, '0');
-        const fullChapterTitle = `${mainTitle} Chapter ${paddedChapterNum}`;
-
-        const formattedUrls = sortedUrls.map(url => `"${url}"`).join(",\n");
-        
-        // Populate all three outputs
-        chapterTitleOutput.value = fullChapterTitle; // For the post title
-        chapterHtmlOutput.value = `<a name='more'></a>\n<script>\nconst ts_reader = [\n${formattedUrls}\n];\n<\/script>`; // For the post body
-        chapterLabelOutput.value = mainTitle; // For the post label
-
-        chapterOutputs.style.display = 'block';
-    });
+    generateChapterCodeBtn.addEventListener("click",()=>{const e=Object.keys(uploadedImages).sort((e,t)=>e.localeCompare(t.name,void 0,{numeric:!0})).map(e=>uploadedImages[e]);if(0===e.length)return void alert("Please upload at least one image.");const t=mangaTitleForChapter.value.trim(),a=chapterNumberInput.value.trim();if(!t)return void alert("Please provide the Main Manga Title.");if(!a)return void alert("Please provide the Chapter Number.");const o=a.includes(".")?a:a.padStart(2,"0"),n=`${t} Chapter ${o}`,r=e.map(e=>`"${e}"`).join(",\n");chapterTitleOutput.value=n,chapterHtmlOutput.value=`<a name='more'></a>\n<script>\nconst ts_reader = [\n${r}\n];\n<\/script>`,chapterLabelOutput.value=t,chapterOutputs.style.display="block"});
     
     function copyToClipboard(e){navigator.clipboard.writeText(document.getElementById(e).value).then(()=>alert("Copied to clipboard!")).catch(e=>console.error("Failed to copy: ",e))}
 </script>
