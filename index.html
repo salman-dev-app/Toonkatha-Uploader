@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Toonkatha Smart Publisher v4</title>
-    <!-- Font Awesome & JSZip -->
+    <title>Toonkatha Smart Publisher v5.1</title>
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- JSZip for .zip & .cbz -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
@@ -29,7 +30,7 @@
         h2 { font-size: 1.5rem; margin-bottom: 1.5rem; color: var(--text-color); text-align: center; }
         label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--label-color); }
         input[type="text"], input[type="number"], select { width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; background-color: var(--input-bg); font-size: 1rem; color: var(--text-color); }
-        input[type="file"] { display: none; } /* BUG FIX: Hides the default file input */
+        input[type="file"] { display: none; }
         .btn { padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 500; cursor: pointer; border: none; border-radius: 8px; color: white; transition: background-color 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
         .btn:disabled { background-color: #9ca3af; cursor: not-allowed; }
         .btn-primary { background-color: var(--primary-color); } .btn-primary:hover:not(:disabled) { background-color: var(--primary-hover); }
@@ -42,17 +43,11 @@
 </head>
 <body>
     <div class="container">
-        <header><h1>Toonkatha Smart Publisher v4</h1></header>
+        <header><h1>Toonkatha Smart Publisher v5.1</h1></header>
 
         <section class="auth-section">
-            <div id="loginContainer">
-                <p style="margin-bottom: 1rem; color: var(--label-color);">Please log in to enable publishing features.</p>
-                <button id="loginBtn" class="btn btn-primary"><i class="fa-brands fa-google"></i> Login with Google</button>
-            </div>
-            <div id="statusContainer" style="display: none;">
-                <p>Logged in as: <strong id="userEmail"></strong> | Blog: <strong id="blogName"></strong></p>
-                <button id="logoutBtn" class="btn btn-danger" style="padding: 0.5rem 1rem; margin-top: 0.5rem;"><i class="fa-solid fa-right-from-bracket"></i> Logout</button>
-            </div>
+            <div id="loginContainer"><p style="margin-bottom: 1rem;">Please log in to enable publishing features.</p><button id="loginBtn" class="btn btn-primary"><i class="fa-brands fa-google"></i> Login with Google</button></div>
+            <div id="statusContainer" style="display: none;"><p>Logged in as: <strong id="userEmail"></strong> | Blog: <strong id="blogName"></strong></p><button id="logoutBtn" class="btn btn-danger" style="padding:0.5rem 1rem;margin-top:0.5rem;"><i class="fa-solid fa-right-from-bracket"></i> Logout</button></div>
         </section>
 
         <section id="blogSelectionContainer" style="display:none;">
@@ -71,9 +66,7 @@
                 <h2>Generate & Publish Main Post</h2>
                 <div class="form-group"><label for="mangaSearchInput">Search Manga/Manhwa Title</label><div style="display:flex; gap:0.5rem;"><input type="text" id="mangaSearchInput" placeholder="e.g., Solo Leveling"><button id="searchButton" class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i></button></div></div>
                 <div id="searchResults" style="margin-top: 1.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;"></div>
-                <div id="mainPostActionContainer" class="center-button-container" style="display: none;">
-                    <button id="publishMainPostBtn" class="btn btn-danger" disabled><i class="fa-brands fa-blogger"></i> Generate & Publish Main Post</button>
-                </div>
+                <div id="mainPostActionContainer" class="center-button-container" style="display: none;"><button id="publishMainPostBtn" class="btn btn-danger" disabled><i class="fa-brands fa-blogger"></i> Generate & Publish Main Post</button></div>
             </section>
 
             <section id="chapterGenerator" class="generator-section">
@@ -83,8 +76,11 @@
                 <div style="border: 2px dashed var(--border-color); border-radius: 12px; padding: 2rem; text-align: center; background-color: var(--input-bg); margin-bottom: 1.5rem;">
                     <h4>Upload Chapter Pages</h4>
                     <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-                        <label for="zipUploadInput" class="btn btn-primary"><i class="fa-solid fa-file-zipper"></i> Upload ZIP</label><input type="file" id="zipUploadInput" accept=".zip">
-                        <label for="manualUploadInput" class="btn btn-secondary"><i class="fa-solid fa-images"></i> Upload Images</label><input type="file" id="manualUploadInput" accept="image/*" multiple>
+                        <label for="archiveUploadInput" class="btn btn-primary"><i class="fa-solid fa-file-zipper"></i> Upload Archive / CBZ</label>
+                        <input type="file" id="archiveUploadInput" accept=".zip,.cbz">
+                        
+                        <label for="manualUploadInput" class="btn btn-secondary"><i class="fa-solid fa-images"></i> Upload Images</label>
+                        <input type="file" id="manualUploadInput" accept="image/*" multiple>
                     </div>
                     <div id="uploadStatus" style="margin-top: 1.5rem; font-weight: 500; color: var(--primary-color);"></div>
                 </div>
@@ -101,111 +97,42 @@
     const GOOGLE_CLIENT_ID = "652211411379-iva4gkn1070s3og93vkdrummhm5ps1qu.apps.googleusercontent.com"; 
     const IMGBB_API_KEY = "fb1fd853dd40775f6eba7cf52cf67a69";
     const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/blogger';
-    const LS_KEYS = {
-        MAIN_TITLES: 'toonkatha_published_main_titles',
-        ALL_POSTS: 'toonkatha_published_posts_v4',
-        BLOG_ID: 'toonkatha_selected_blog_id',
-        BLOG_NAME: 'toonkatha_selected_blog_name'
-    };
+    const LS_KEYS = { MAIN_TITLES: 'toonkatha_published_main_titles', ALL_POSTS: 'toonkatha_published_posts_v4', BLOG_ID: 'toonkatha_selected_blog_id', BLOG_NAME: 'toonkatha_selected_blog_name' };
     // --- END: CONFIGURATION ---
 
     // Global state
     let selectedMangaData = null, tokenClient, gapiInited = false, gisInited = false;
-    let blogId = localStorage.getItem(LS_KEYS.BLOG_ID) || null;
-    let blogName = localStorage.getItem(LS_KEYS.BLOG_NAME) || 'Not Selected';
-    let userProfile = null;
+    let blogId = localStorage.getItem(LS_KEYS.BLOG_ID) || null, blogName = localStorage.getItem(LS_KEYS.BLOG_NAME) || 'Not Selected', userProfile = null;
 
     // DOM Elements
     const D = {
-        loginBtn: document.getElementById("loginBtn"), logoutBtn: document.getElementById("logoutBtn"),
-        loginContainer: document.getElementById("loginContainer"), statusContainer: document.getElementById("statusContainer"),
-        userEmail: document.getElementById("userEmail"), blogName: document.getElementById("blogName"),
-        showPostBtn: document.getElementById("showPostBtn"), showChapterBtn: document.getElementById("showChapterBtn"),
-        postGenerator: document.getElementById("postGenerator"), chapterGenerator: document.getElementById("chapterGenerator"),
-        searchButton: document.getElementById("searchButton"), searchInput: document.getElementById("mangaSearchInput"),
+        loginBtn: document.getElementById("loginBtn"), logoutBtn: document.getElementById("logoutBtn"), loginContainer: document.getElementById("loginContainer"),
+        statusContainer: document.getElementById("statusContainer"), userEmail: document.getElementById("userEmail"), blogName: document.getElementById("blogName"),
+        showPostBtn: document.getElementById("showPostBtn"), showChapterBtn: document.getElementById("showChapterBtn"), postGenerator: document.getElementById("postGenerator"),
+        chapterGenerator: document.getElementById("chapterGenerator"), searchButton: document.getElementById("searchButton"), searchInput: document.getElementById("mangaSearchInput"),
         searchResults: document.getElementById("searchResults"), mangaTitleForChapter: document.getElementById("mangaTitleForChapter"),
-        chapterNumberInput: document.getElementById("chapterNumberInput"), zipUploadInput: document.getElementById("zipUploadInput"),
-        manualUploadInput: document.getElementById("manualUploadInput"), uploadStatus: document.getElementById("uploadStatus"),
-        pageLinksContainer: document.getElementById("pageLinksContainer"), publishMainPostBtn: document.getElementById("publishMainPostBtn"),
+        chapterNumberInput: document.getElementById("chapterNumberInput"), archiveUploadInput: document.getElementById("archiveUploadInput"), manualUploadInput: document.getElementById("manualUploadInput"),
+        uploadStatus: document.getElementById("uploadStatus"), pageLinksContainer: document.getElementById("pageLinksContainer"), publishMainPostBtn: document.getElementById("publishMainPostBtn"),
         publishChapterPostBtn: document.getElementById("publishChapterPostBtn"), mainPostActionContainer: document.getElementById("mainPostActionContainer"),
-        blogSelectionContainer: document.getElementById("blogSelectionContainer"), blogSelector: document.getElementById("blogSelector"),
-        saveBlogSelectionBtn: document.getElementById("saveBlogSelectionBtn")
+        blogSelectionContainer: document.getElementById("blogSelectionContainer"), blogSelector: document.getElementById("blogSelector"), saveBlogSelectionBtn: document.getElementById("saveBlogSelectionBtn")
     };
 
     // --- Core App & UI Logic ---
     function switchView(view){ D.postGenerator.classList.toggle("active", view === "post"); D.chapterGenerator.classList.toggle("active", view === "chapter"); D.showPostBtn.classList.toggle("active", view === "post"); D.showChapterBtn.classList.toggle("active", view === "chapter"); }
-    
     function updateUIForLoginStatus(isLoggedIn) {
-        D.loginContainer.style.display = isLoggedIn ? 'none' : 'block';
-        D.statusContainer.style.display = isLoggedIn ? 'block' : 'none';
-        D.publishMainPostBtn.disabled = !isLoggedIn;
-        D.publishChapterPostBtn.disabled = !isLoggedIn;
-        if (isLoggedIn) {
-            D.userEmail.textContent = userProfile.email;
-            D.blogName.textContent = localStorage.getItem(LS_KEYS.BLOG_NAME) || 'Not Selected';
-        }
+        D.loginContainer.style.display = isLoggedIn ? 'none' : 'block'; D.statusContainer.style.display = isLoggedIn ? 'block' : 'none';
+        D.publishMainPostBtn.disabled = !isLoggedIn; D.publishChapterPostBtn.disabled = !isLoggedIn;
+        if (isLoggedIn) { D.userEmail.textContent = userProfile.email; D.blogName.textContent = localStorage.getItem(LS_KEYS.BLOG_NAME) || 'Not Selected'; }
     }
-    
+
     // --- Google API & Auth ---
     function gapiLoaded(){ gapi.load('client', async () => { await gapi.client.init({ discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/blogger/v3/rest'] }); gapiInited = true; }); }
     function gisLoaded(){ if (!GOOGLE_CLIENT_ID) return console.error("FATAL: Google Client ID is not set."); tokenClient = google.accounts.oauth2.initTokenClient({ client_id: GOOGLE_CLIENT_ID, scope: GOOGLE_SCOPES, callback: handleTokenResponse }); gisInited = true; }
-
-    function handleLogin() {
-        if (!gisInited || !gapiInited) return alert("API not ready. Please wait.");
-        tokenClient.requestAccessToken({ prompt: 'consent' });
-    }
-
-    async function handleTokenResponse(resp) {
-        if (resp.error) throw (resp);
-        
-        // Fetch user profile info
-        try {
-            const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${resp.access_token}` } });
-            userProfile = await profileResponse.json();
-        } catch (e) {
-            console.error("Could not fetch user profile", e);
-            userProfile = { email: 'Unknown' };
-        }
-
-        updateUIForLoginStatus(true);
-
-        if (!blogId) {
-            await fetchAndDisplayBlogs();
-        }
-    }
-
-    function handleLogout() {
-        const token = gapi.client.getToken();
-        if (token) {
-            google.accounts.oauth2.revoke(token.access_token, () => {
-                gapi.client.setToken('');
-                userProfile = null;
-                updateUIForLoginStatus(false);
-            });
-        }
-    }
-
-    async function fetchAndDisplayBlogs() {
-        try {
-            const res = await gapi.client.blogger.blogs.listByUser({ userId: 'self' });
-            const blogs = res.result.items;
-            if (blogs && blogs.length > 0) {
-                D.blogSelector.innerHTML = blogs.map(b => `<option value="${b.id}" data-name="${b.name}">${b.name}</option>`).join('');
-                D.blogSelectionContainer.style.display = 'block'; D.blogSelectionContainer.scrollIntoView({ behavior: 'smooth' });
-            } else alert('No blogs found for this user.');
-        } catch (err) { console.error("Error fetching blogs:", err); alert('Could not fetch blog list.'); }
-    }
-    
-    function saveBlogSelection() {
-        const selectedOption = D.blogSelector.options[D.blogSelector.selectedIndex];
-        blogId = selectedOption.value;
-        blogName = selectedOption.getAttribute('data-name');
-        localStorage.setItem(LS_KEYS.BLOG_ID, blogId);
-        localStorage.setItem(LS_KEYS.BLOG_NAME, blogName);
-        D.blogName.textContent = blogName;
-        D.blogSelectionContainer.style.display = 'none';
-        alert("Blog selection saved!");
-    }
+    function handleLogin() { if (!gisInited || !gapiInited) return alert("API not ready."); tokenClient.requestAccessToken({ prompt: 'consent' }); }
+    async function handleTokenResponse(resp) { if (resp.error) throw (resp); try { const profileResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', { headers: { 'Authorization': `Bearer ${resp.access_token}` } }); userProfile = await profileResponse.json(); } catch (e) { console.error("Could not fetch user profile", e); userProfile = { email: 'Unknown' }; } updateUIForLoginStatus(true); if (!blogId) await fetchAndDisplayBlogs(); }
+    function handleLogout() { const token = gapi.client.getToken(); if (token) google.accounts.oauth2.revoke(token.access_token, () => { gapi.client.setToken(''); userProfile = null; updateUIForLoginStatus(false); }); }
+    async function fetchAndDisplayBlogs() { try { const res = await gapi.client.blogger.blogs.listByUser({ userId: 'self' }); const blogs = res.result.items; if (blogs && blogs.length > 0) { D.blogSelector.innerHTML = blogs.map(b => `<option value="${b.id}" data-name="${b.name}">${b.name}</option>`).join(''); D.blogSelectionContainer.style.display = 'block'; D.blogSelectionContainer.scrollIntoView({ behavior: 'smooth' }); } else alert('No blogs found.'); } catch (err) { console.error("Error fetching blogs:", err); alert('Could not fetch blog list.'); } }
+    function saveBlogSelection() { const selectedOption = D.blogSelector.options[D.blogSelector.selectedIndex]; blogId = selectedOption.value; blogName = selectedOption.getAttribute('data-name'); localStorage.setItem(LS_KEYS.BLOG_ID, blogId); localStorage.setItem(LS_KEYS.BLOG_NAME, blogName); D.blogName.textContent = blogName; D.blogSelectionContainer.style.display = 'none'; alert("Blog selection saved!"); }
     
     // --- Event Listeners ---
     D.loginBtn.addEventListener('click', handleLogin);
@@ -217,89 +144,61 @@
     D.searchInput.addEventListener("keypress", e => { if (e.key === "Enter") searchManga(); });
     D.publishMainPostBtn.addEventListener('click', () => handlePublish('main'));
     D.publishChapterPostBtn.addEventListener('click', () => handlePublish('chapter'));
-
-    // --- Publishing Workflow ---
-    function handlePublish(type) {
-        if (!userProfile) return alert("Please log in first.");
-        if (!blogId) return alert("Please select a blog first.");
-
-        const postData = generatePostData(type);
-        if (!postData) return;
-
-        const postKey = generatePostKey(type, postData);
-        if (getPublishedPosts().includes(postKey)) {
-            return alert("DUPLICATE: This exact post (title and labels) has already been published.");
+    D.archiveUploadInput.addEventListener('change', handleArchiveUpload);
+    D.manualUploadInput.addEventListener('change', (e) => { if (e.target.files.length > 0) handleFileUpload(Array.from(e.target.files)); });
+    
+    // --- Archive Handling Logic (ZIP/CBZ only) ---
+    async function handleArchiveUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        const fileName = file.name.toLowerCase();
+        if (!fileName.endsWith('.zip') && !fileName.endsWith('.cbz')) {
+            return alert('Unsupported file type. Please upload a .zip or .cbz file.');
         }
 
-        publishPost(postData, type, postKey);
-    }
-    
-    async function publishPost(postData, type, postKey) {
-        const button = type === 'main' ? D.publishMainPostBtn : D.publishChapterPostBtn;
-        const originalHtml = button.innerHTML;
-        button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publishing...'; button.disabled = true;
+        D.pageLinksContainer.innerHTML = '';
+        D.uploadStatus.textContent = 'Reading ZIP/CBZ file...';
+        
         try {
-            const res = await gapi.client.blogger.posts.insert({ blogId: blogId, isDraft: false, resource: postData });
-            alert(`Successfully published: "${res.result.title}"`);
-            addPostToLocalStorage(postKey);
-            if (type === 'main') {
-                addMainTitleToLocalStorage(postData.title);
-                D.mainPostActionContainer.style.display = 'none';
-                D.searchResults.innerHTML = `<div class="info-message">"${postData.title}" published!</div>`;
+            const jszip = new JSZip();
+            const zip = await jszip.loadAsync(file);
+            const zipEntries = [];
+            zip.forEach((_, zipEntry) => { if (!zipEntry.dir && /\.(jpe?g|png|gif|webp)$/i.test(zipEntry.name)) zipEntries.push(zipEntry); });
+            zipEntries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+            
+            if (zipEntries.length === 0) {
+                D.uploadStatus.style.color = 'var(--danger-color)'; D.uploadStatus.textContent = 'No valid image files found in the archive.'; return;
             }
-        } catch (err) { console.error("Publish Error:", err); alert('Failed to publish. Check console.');
-        } finally { button.innerHTML = originalHtml; button.disabled = false; }
+            
+            const imageFiles = await Promise.all(zipEntries.map(async (entry) => new File([await entry.async('blob')], entry.name)));
+            handleFileUpload(imageFiles);
+
+        } catch (err) {
+            D.uploadStatus.style.color = 'var(--danger-color)'; D.uploadStatus.textContent = 'Error processing archive. It might be corrupted.';
+            console.error('Archive Error:', err);
+        }
     }
 
-    // --- Data Generation & Local Storage ---
-    function generatePostData(type) { /* ... (same as v3, omitted for brevity but included below) ... */ }
+    // --- Publishing Workflow ---
+    function handlePublish(type) { if (!userProfile) return alert("Please log in first."); if (!blogId) return alert("Please select a blog first."); const postData = generatePostData(type); if (!postData) return; const postKey = generatePostKey(type, postData); if (getPublishedPosts().includes(postKey)) return alert("DUPLICATE: This exact post has already been published."); publishPost(postData, type, postKey); }
+    async function publishPost(postData, type, postKey) { const button = type === 'main' ? D.publishMainPostBtn : D.publishChapterPostBtn; const originalHtml = button.innerHTML; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publishing...'; button.disabled = true; try { const res = await gapi.client.blogger.posts.insert({ blogId: blogId, isDraft: false, resource: postData }); alert(`Successfully published: "${res.result.title}"`); addPostToLocalStorage(postKey); if (type === 'main') { addMainTitleToLocalStorage(postData.title); D.mainPostActionContainer.style.display = 'none'; D.searchResults.innerHTML = `<div class="info-message">"${postData.title}" published!</div>`; } } catch (err) { console.error("Publish Error:", err); alert('Failed to publish. Check console.'); } finally { button.innerHTML = originalHtml; button.disabled = false; } }
+
+    // --- Local Storage Helpers ---
     function generatePostKey(type, postData) { const sortedLabels = [...postData.labels].sort().join(','); return `${type.toUpperCase()}|${postData.title}|${sortedLabels}`; }
     function getPublishedPosts() { const p = localStorage.getItem(LS_KEYS.ALL_POSTS); return p ? JSON.parse(p) : []; }
     function addPostToLocalStorage(key) { const p = getPublishedPosts(); if (!p.includes(key)) { p.push(key); localStorage.setItem(LS_KEYS.ALL_POSTS, JSON.stringify(p)); } }
     function getPublishedMainTitles(){const t=localStorage.getItem(LS_KEYS.MAIN_TITLES);return t?JSON.parse(t):[]}
     function addMainTitleToLocalStorage(title){const t=getPublishedMainTitles();if(!t.includes(title)){t.push(title);localStorage.setItem(LS_KEYS.MAIN_TITLES,JSON.stringify(t))}}
     
-    // --- Rest of the functions (Search, Select, Upload) ---
-    async function searchManga() { /* ... (same as v3) ... */ }
-    function displaySearchResults(mangas) { /* ... (same as v3) ... */ }
-    function selectManga(manga) { /* ... (same as v3) ... */ }
-    async function uploadToImgBB(file){ /* ... (same as v3) ... */ }
-    D.manualUploadInput.addEventListener('change',(e)=>{if(e.target.files.length>0)handleFileUpload(Array.from(e.target.files))});
-    D.zipUploadInput.addEventListener('change',async(e)=>{ /* ... (same as v3) ... */ });
-    async function handleFileUpload(files){ /* ... (same as v3) ... */ }
-    function populateLinkInputs(urls){ /* ... (same as v3) ... */ }
-
-    // Paste the full, unchanged functions here to make the script complete
-    function generatePostData(type) {
-        if (type === 'main') {
-            if (!selectedMangaData) { alert("Manga data is missing."); return null; }
-            const manga = selectedMangaData;
-            const content = `<div class="separator" style="clear: both;"><a href="${manga.images.jpg.large_image_url}" style="display: block; padding: 1em 0; text-align: center; "><img alt="Cover for ${manga.title}" border="0" src="${manga.images.jpg.large_image_url}"/></a></div>\n<p id="syn_bod">${manga.synopsis||"N/A"}</p>\n<span>${manga.authors[0]?.name||"N/A"}</span>\n<span>${new Date(manga.published.from).getFullYear()||"N/A"}</span>\n<div class="chapter_get" data-labelchapter="${manga.title}"></div>`;
-            const labels = new Set();
-            if (manga.status === 'Finished') labels.add('Completed'); else if (manga.status === 'Publishing') labels.add('Ongoing');
-            if (manga.type) labels.add(manga.type);
-            labels.add('New'); labels.add('Series');
-            manga.genres.forEach(g => labels.add(g.name));
-            manga.themes.forEach(t => labels.add(t.name));
-            labels.add(manga.title);
-            return { title: manga.title, content: content, labels: Array.from(labels) };
-        } else {
-            const mainTitle = D.mangaTitleForChapter.value.trim(); const chapterNum = D.chapterNumberInput.value.trim();
-            if (!mainTitle || !chapterNum) { alert("Manga Title and Chapter Number are required."); return null; }
-            const pageLinks = Array.from(document.querySelectorAll('#pageLinksContainer input')).map(input => input.value.trim()).filter(Boolean);
-            if (pageLinks.length === 0) { alert('Please upload images first.'); return null; }
-            const content = pageLinks.map(link => `<div class="separator" style="clear: both; text-align: center;"><img alt="${mainTitle} Chapter ${chapterNum} Page" border="0" src="${link}" loading="lazy" /></div>`).join('\n');
-            return { title: `Chapter ${chapterNum}`, content: content, labels: ['Chapter', mainTitle] };
-        }
-    }
-    async function searchManga() { const query = D.searchInput.value.trim(); if (!query) return alert("Please enter a search term."); D.searchResults.innerHTML = '<div class="info-message">Searching...</div>'; D.mainPostActionContainer.style.display = 'none'; try { const res = await fetch(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(query)}&limit=10`); const data = await res.json(); displaySearchResults(data.data); } catch (err) { D.searchResults.innerHTML = '<p>Error fetching data.</p>'; console.error("API Error:", err); } }
-    function displaySearchResults(mangas) { D.searchResults.innerHTML = ""; if (!mangas || mangas.length === 0) { D.searchResults.innerHTML = '<p>No results found.</p>'; return; } mangas.forEach(manga => { const card = document.createElement("div"); card.className = "search-result-card"; card.style = "display: flex; gap: 1rem; padding: 1rem; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer;"; card.innerHTML = `<img src="${manga.images.jpg.image_url}" alt="Cover" style="width: 80px; height: 120px; object-fit: cover; border-radius: 4px;"><div style="overflow:hidden;"><h4>${manga.title}</h4><p>${(manga.synopsis || "").substring(0, 100)}...</p></div>`; card.addEventListener("click", () => selectManga(manga)); D.searchResults.appendChild(card); }); }
-    function selectManga(manga) { selectedMangaData = manga; D.mangaTitleForChapter.value = manga.title; const publishedTitles = getPublishedMainTitles(); if (publishedTitles.includes(manga.title)) { D.searchResults.innerHTML = `<div class="info-message">"${manga.title}" main post exists. Switching to Chapter Upload.</div>`; D.mainPostActionContainer.style.display = 'none'; setTimeout(() => { switchView('chapter'); D.chapterNumberInput.focus(); }, 2000); } else { D.searchResults.innerHTML = `<div class="info-message" style="background-color: #dcfce7; border-color: #86efac; color: #166534;">Selected for Main Post: ${manga.title}.</div>`; D.mainPostActionContainer.style.display = 'block'; } }
+    // --- Data Generation, Search, Select, Upload Functions (unchanged logic) ---
+    function generatePostData(type) { if (type === 'main') { if (!selectedMangaData) { alert("Manga data missing."); return null; } const m = selectedMangaData; const content = `<div class="separator" style="clear: both;"><a href="${m.images.jpg.large_image_url}"><img alt="Cover" src="${m.images.jpg.large_image_url}"/></a></div><p>${m.synopsis||"N/A"}</p><span>${m.authors[0]?.name||"N/A"}</span><span>${new Date(m.published.from).getFullYear()||"N/A"}</span><div class="chapter_get" data-labelchapter="${m.title}"></div>`; const l=new Set(); if (m.status==='Finished') l.add('Completed'); else if (m.status==='Publishing') l.add('Ongoing'); if (m.type) l.add(m.type); l.add('New');l.add('Series'); m.genres.forEach(g=>l.add(g.name));m.themes.forEach(t=>l.add(t.name));l.add(m.title); return { title: m.title, content: content, labels: Array.from(l) }; } else { const mt=D.mangaTitleForChapter.value.trim(),cn=D.chapterNumberInput.value.trim(); if(!mt||!cn) {alert("Title and Chapter Number required.");return null;} const pl=Array.from(document.querySelectorAll('#pageLinksContainer input')).map(i=>i.value.trim()).filter(Boolean); if (pl.length===0){alert('Upload images first.');return null;} const content=pl.map(link=>`<div class="separator" style="text-align:center;"><img alt="${mt} Ch ${cn}" src="${link}" loading="lazy"/></div>`).join('\n'); return {title:`Chapter ${cn}`,content:content,labels:['Chapter',mt]}; } }
+    async function searchManga() { const q = D.searchInput.value.trim(); if (!q) return; D.searchResults.innerHTML = '<div class="info-message">Searching...</div>'; D.mainPostActionContainer.style.display = 'none'; try { const r = await fetch(`https://api.jikan.moe/v4/manga?q=${encodeURIComponent(q)}&limit=10`); const d = await r.json(); displaySearchResults(d.data); } catch (e) { console.error("API Error:", e); } }
+    function displaySearchResults(mangas) { D.searchResults.innerHTML = ""; if (!mangas || mangas.length === 0) return; mangas.forEach(m => { const c = document.createElement("div"); c.className = "search-result-card"; c.style = "display:flex;gap:1rem;padding:1rem;border:1px solid var(--border-color);border-radius:8px;cursor:pointer;"; c.innerHTML = `<img src="${m.images.jpg.image_url}" alt="Cover" style="width:80px;height:120px;object-fit:cover;border-radius:4px;"><div style="overflow:hidden;"><h4>${m.title}</h4><p>${(m.synopsis||"").substring(0,100)}...</p></div>`; c.addEventListener("click", () => selectManga(m)); D.searchResults.appendChild(c); }); }
+    function selectManga(manga) { selectedMangaData = manga; D.mangaTitleForChapter.value = manga.title; if (getPublishedMainTitles().includes(manga.title)) { D.searchResults.innerHTML = `<div class="info-message">Main post exists. Switching to Chapter Upload.</div>`; D.mainPostActionContainer.style.display = 'none'; setTimeout(() => { switchView('chapter'); D.chapterNumberInput.focus(); }, 2000); } else { D.searchResults.innerHTML = `<div class="info-message" style="background-color:#dcfce7;color:#166534;">Selected: ${manga.title}.</div>`; D.mainPostActionContainer.style.display = 'block'; } }
     async function uploadToImgBB(file){const f=new FormData();f.append('image',file);try{const r=await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,{method:'POST',body:f}),d=await r.json();return d.success?d.data.url:null}catch(e){console.error('ImgBB Error:',e);return null}}
-    D.zipUploadInput.addEventListener('change',async(e)=>{const z=e.target.files[0];if(!z)return;D.pageLinksContainer.innerHTML='';D.uploadStatus.textContent='Reading ZIP...';try{const j=new JSZip(),p=await j.loadAsync(z),i=[];p.forEach((_,f)=>{if(!f.dir&&/\.(jpe?g|png|gif|webp)$/i.test(f.name))i.push(f)});i.sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));if(i.length===0){D.uploadStatus.style.color='var(--danger-color)';D.uploadStatus.textContent='No images in ZIP.';return}const t=await Promise.all(i.map(async(f)=>new File([await f.async('blob')],f.name,{type:(await f.async('blob')).type})));handleFileUpload(t)}catch(r){D.uploadStatus.style.color='var(--danger-color)';D.uploadStatus.textContent='Error reading ZIP.';console.error('ZIP Error:',r)}});
     async function handleFileUpload(files){D.pageLinksContainer.innerHTML='';D.uploadStatus.style.color='var(--primary-color)';const t=files.length,u=[];D.publishChapterPostBtn.style.display='none';for(let i=0;i<t;i++){D.uploadStatus.textContent=`Uploading ${i+1}/${t}...`;const l=await uploadToImgBB(files[i]);if(l)u.push(l);else{D.uploadStatus.style.color='var(--danger-color)';D.uploadStatus.textContent=`Upload failed on ${files[i].name}.`;return}}D.uploadStatus.style.color='var(--secondary-color)';D.uploadStatus.textContent=`${t} images uploaded!`;populateLinkInputs(u);D.publishChapterPostBtn.style.display='inline-flex';}
-    function populateLinkInputs(urls){D.pageLinksContainer.innerHTML=urls.map(url=>`<input type="text" value="${url}" readonly style="width: 100%; margin-bottom: 5px; background-color: #eef2ff; border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem 1rem;">`).join('')}
-
+    function populateLinkInputs(urls){D.pageLinksContainer.innerHTML=urls.map(url=>`<input type="text" value="${url}" readonly style="width:100%;margin-bottom:5px;background-color:#eef2ff;border:1px solid var(--border-color);border-radius:8px;padding:0.75rem 1rem;">`).join('')}
 </script>
 <script async defer src="https://apis.google.com/js/api.js" onload="gapiLoaded()"></script>
 <script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
